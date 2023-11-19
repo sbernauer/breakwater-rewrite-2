@@ -31,9 +31,10 @@ pub struct CliArgs {
     #[clap(long, default_value = "Arial.ttf")]
     pub font: String,
 
-    // /// Listen address the prometheus exporter should listen on.
-    // #[clap(short, long, default_value = "[::]:9100")]
-    // pub prometheus_listen_address: String,
+    /// Listen address the prometheus exporter should listen on.
+    #[clap(short, long, default_value = "[::]:9100")]
+    pub prometheus_listen_address: String,
+
     /// Save file where statistics are periodically saved.
     /// The save file will be read during startup and statistics are restored.
     /// To reset the statistics simply remove the file.

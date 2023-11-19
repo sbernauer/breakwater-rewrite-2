@@ -3,6 +3,7 @@ use std::sync::Arc;
 use breakwater_core::framebuffer::FrameBuffer;
 use clap::Parser;
 use env_logger::Env;
+use prometheus_exporter::PrometheusExporter;
 use snafu::{ResultExt, Snafu};
 use tokio::sync::{broadcast, mpsc};
 
@@ -20,6 +21,7 @@ use {
 };
 
 mod cli_args;
+mod prometheus_exporter;
 mod server;
 mod sinks;
 mod statistics;
@@ -34,6 +36,9 @@ pub enum Error {
 
     #[snafu(display("Failed to wait for CTRL + C signal"))]
     WaitForCtrlCSignal { source: std::io::Error },
+
+    #[snafu(display("Failed to start Prometheus exporter"))]
+    StartPrometheusExporter { source: prometheus_exporter::Error },
 
     #[cfg(feature = "vnc")]
     #[snafu(display("Failed to spawn VNC server thread"))]
@@ -50,11 +55,15 @@ pub enum Error {
     #[cfg(feature = "vnc")]
     #[snafu(display("Failed to start VNC server"))]
     StartVncServer { source: vnc::Error },
+
+    #[cfg(feature = "vnc")]
+    #[snafu(display("Failed to get cross-platform ThreadPriority. Please report this error message together with your operating system: {message}"))]
+    GetThreadPriority { message: String },
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    env_logger::Builder::from_env(Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(Env::default().default_filter_or("debug")).init();
     let args = CliArgs::parse();
 
     let fb = Arc::new(FrameBuffer::new(args.width, args.height));
@@ -62,7 +71,7 @@ async fn main() -> Result<(), Error> {
     // If we make the channel to big, stats will start to lag behind
     // TODO: Check performance impact in real-world scenario. Maybe the statistics thread blocks the other threads
     let (statistics_tx, statistics_rx) = mpsc::channel::<StatisticsEvent>(100);
-    let (statistics_information_tx, _statistics_information_rx_for_prometheus_exporter) =
+    let (statistics_information_tx, statistics_information_rx_for_prometheus_exporter) =
         broadcast::channel::<StatisticsInformationEvent>(2);
 
     #[cfg(feature = "vnc")]
@@ -87,8 +96,15 @@ async fn main() -> Result<(), Error> {
     let server = Server::new(&args.listen_address, Arc::clone(&fb), statistics_tx.clone())
         .await
         .context(StartPixelflutServerSnafu)?;
+    let mut prometheus_exporter = PrometheusExporter::new(
+        &args.prometheus_listen_address,
+        statistics_information_rx_for_prometheus_exporter,
+    )
+    .context(StartPrometheusExporterSnafu)?;
+
     let server_listener_thread = tokio::spawn(async move { server.start().await });
     let statistics_thread = tokio::spawn(async move { statistics.start().await });
+    let prometheus_exporter_thread = tokio::spawn(async move { prometheus_exporter.run().await });
 
     #[cfg(feature = "vnc")]
     let vnc_server_thread = {
@@ -111,17 +127,21 @@ async fn main() -> Result<(), Error> {
         std::thread::Builder::new()
             .name("breakwater vnc server thread".to_owned())
             .spawn_with_priority(
-                ThreadPriority::Crossplatform(70.try_into().expect("Failed to get cross-platform ThreadPriority. Please report this error message together with your operating system.")),
-                move |_| {
-                    vnc_server.run().context(StartVncServerSnafu)
-                },
+                ThreadPriority::Crossplatform(70.try_into().map_err(|err: &str| {
+                    Error::GetThreadPriority {
+                        message: err.to_string(),
+                    }
+                })?),
+                move |_| vnc_server.run().context(StartVncServerSnafu),
             )
-    }.context(SpawnVncServerThreadSnafu)?;
+    }
+    .context(SpawnVncServerThreadSnafu)?;
 
     tokio::signal::ctrl_c()
         .await
         .context(WaitForCtrlCSignalSnafu)?;
 
+    prometheus_exporter_thread.abort();
     server_listener_thread.abort();
     statistics_thread.abort();
 

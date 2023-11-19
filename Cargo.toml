@@ -18,6 +18,7 @@ env_logger = "0.10"
 log = "0.4"
 number_prefix = "0.4"
 pixelbomber = "0.4"
+prometheus_exporter = "0.8"
 rstest = "0.18"
 rusttype = "0.9"
 serde = { version = "1.0", features = ["derive"] }
