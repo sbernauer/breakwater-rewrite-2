@@ -1,0 +1,26 @@
+[package]
+name = "breakwater-parser"
+description = "Parses Pixelflut commands as fast as possible"
+version.workspace = true
+authors.workspace = true
+license.workspace = true
+edition.workspace = true
+repository.workspace = true
+
+[[bench]]
+name = "parsing"
+harness = false
+
+[dependencies]
+breakwater-core.workspace = true
+
+async-trait.workspace = true
+snafu.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+pixelbomber.workspace = true
+
+[features]
+alpha = []

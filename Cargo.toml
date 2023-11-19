@@ -1,0 +1,45 @@
+[workspace]
+members = ["breakwater-core", "breakwater-parser", "breakwater"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+license = "Beerware"
+authors = ["Sebastian Bernauer <bernauerse@web.de>"]
+edition = "2021"
+repository = "https://github.com/sernauer/breakwater"
+
+[workspace.dependencies]
+async-trait = "0.1"
+clap = { version = "4.3", features = ["derive"] }
+const_format = "0.2"
+criterion = {version = "0.5", features = ["async_tokio"]}
+env_logger = "0.10"
+log = "0.4"
+number_prefix = "0.4"
+pixelbomber = "0.4"
+rstest = "0.18"
+rusttype = "0.9"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+simple_moving_average = "1.0"
+snafu = "0.7"
+thread-priority = "0.15"
+tokio = { version = "1.34", features = ["fs", "rt-multi-thread", "net", "io-util", "macros", "process", "signal", "sync", "time"] }
+vncserver = "0.2"
+
+breakwater-core = { path = "breakwater-core", default-features = false }
+breakwater-parser = { path = "breakwater-parser", default-features = false }
+
+[profile.dev]
+opt-level = 3
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+# panic = "abort" # You can enable this, but I prefer to get actual stack traces
+
+[patch.crates-io]
+# https://github.com/rayylee/libvnc-rs/pull/2: Update bindgen to 0.69
+vncserver = { git = 'https://github.com/sbernauer/libvnc-rs.git' }
