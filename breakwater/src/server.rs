@@ -6,7 +6,7 @@ use std::{
 };
 
 use breakwater_core::framebuffer::FrameBuffer;
-use breakwater_parser::{implementations::SimpleParser, Parser};
+use breakwater_parser::{implementations::SimpleParser, Parser, ParserError};
 use log::{debug, info};
 use snafu::{ResultExt, Snafu};
 use tokio::{
@@ -39,9 +39,7 @@ pub enum Error {
     },
 
     #[snafu(display("Failed to parse Pixelflut commands"))]
-    ParsePixelflutCommands {
-        source: <SimpleParser as breakwater_parser::Parser>::Error,
-    },
+    ParsePixelflutCommands { source: ParserError },
 }
 
 pub struct Server {
@@ -108,6 +106,7 @@ pub async fn handle_connection(
     let mut leftover_bytes_in_buffer = 0;
 
     let mut parser: SimpleParser = SimpleParser::default();
+    // let mut parser: AssemblerParser = AssemblerParser::default();
     let parser_lookahead = SimpleParser::parser_lookahead();
 
     // If we send e.g. an StatisticsEvent::BytesRead for every time we read something from the socket the statistics thread would go crazy.
@@ -169,7 +168,7 @@ pub async fn handle_connection(
 
             // IMPORTANT: We have to subtract 1 here, as e.g. we have "PX 0 0\n" data_end is 7 and parser_state.last_byte_parsed is 6.
             // This happens, because last_byte_parsed is an index starting at 0, so index 6 is from an array of length 7
-            leftover_bytes_in_buffer = data_end - last_byte_parsed - 1;
+            leftover_bytes_in_buffer = data_end.saturating_sub(last_byte_parsed).saturating_sub(1);
 
             // There is no need to leave anything longer than a command can take
             // This prevents malicious clients from sending gibberish and the buffer not getting drained

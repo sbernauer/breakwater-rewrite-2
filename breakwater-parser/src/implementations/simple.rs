@@ -5,18 +5,12 @@ use std::{
 
 use async_trait::async_trait;
 use breakwater_core::{framebuffer::FrameBuffer, HELP_TEXT};
-use snafu::{ResultExt, Snafu};
+use snafu::ResultExt;
 use tokio::io::AsyncWriteExt;
 
-use crate::Parser;
+use crate::{Parser, ParserError};
 
 const PARSER_LOOKAHEAD: usize = "PX 1234 1234 rrggbbaa\n".len(); // Longest possible command
-
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("Failed to write to TCP socket"))]
-    WriteToTcpSocket { source: std::io::Error },
-}
 
 #[derive(Default)]
 pub struct SimpleParser {
@@ -26,14 +20,12 @@ pub struct SimpleParser {
 
 #[async_trait]
 impl Parser for SimpleParser {
-    type Error = Error;
-
     async fn parse(
         &mut self,
         buffer: &[u8],
         fb: &Arc<FrameBuffer>,
         mut stream: impl AsyncWriteExt + Send + Unpin,
-    ) -> Result<usize, Error> {
+    ) -> Result<usize, ParserError> {
         let mut last_byte_parsed = 0;
         let mut i = 0; // We can't use a for loop here because Rust don't lets use skip characters by incrementing i
         let loop_end = buffer.len().saturating_sub(PARSER_LOOKAHEAD); // Let's extract the .len() call and the subtraction into it's own variable so we only compute it once
@@ -165,7 +157,7 @@ impl Parser for SimpleParser {
                 stream
                     .write_all(format!("SIZE {} {}\n", fb.get_width(), fb.get_height()).as_bytes())
                     .await
-                    .context(WriteToTcpSocketSnafu)?;
+                    .context(crate::WriteToTcpSocketSnafu)?;
                 continue;
             } else if current_command & 0xffff_ffff == string_to_number(b"HELP\0\0\0\0") {
                 i += 4;
@@ -174,7 +166,7 @@ impl Parser for SimpleParser {
                 stream
                     .write_all(HELP_TEXT)
                     .await
-                    .context(WriteToTcpSocketSnafu)?;
+                    .context(crate::WriteToTcpSocketSnafu)?;
                 continue;
             }
 
