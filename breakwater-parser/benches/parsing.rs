@@ -69,11 +69,11 @@ fn invoke_benchmark(
             .iter(|| invoke_simple_implementation(input, &fb));
     });
 
-    c_group.bench_with_input("Assembler", &commands, |b, input| {
-        let fb = Arc::new(FrameBuffer::new(FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT));
-        b.to_async(tokio::runtime::Runtime::new().expect("Failed to start tokio runtime"))
-            .iter(|| invoke_assembler_implementation(input, &fb));
-    });
+    // c_group.bench_with_input("Assembler", &commands, |b, input| {
+    //     let fb = Arc::new(FrameBuffer::new(FRAMEBUFFER_WIDTH, FRAMEBUFFER_HEIGHT));
+    //     b.to_async(tokio::runtime::Runtime::new().expect("Failed to start tokio runtime"))
+    //         .iter(|| invoke_assembler_implementation(input, &fb));
+    // });
 }
 
 async fn invoke_simple_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
@@ -84,7 +84,7 @@ async fn invoke_simple_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
         .expect("Failed to parse commands");
 }
 
-async fn invoke_assembler_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
+async fn _invoke_assembler_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
     let mut parser = AssemblerParser::default();
     parser
         .parse(input, fb, DevNullTcpStream::default())
