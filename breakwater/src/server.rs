@@ -18,7 +18,6 @@ use tokio::{
 
 use crate::statistics::StatisticsEvent;
 
-const NETWORK_BUFFER_SIZE: usize = 256_000;
 // Every client connection spawns a new thread, so we need to limit the number of stat events we send
 const STATISTICS_REPORT_INTERVAL: Duration = Duration::from_millis(250);
 
@@ -47,6 +46,7 @@ pub struct Server {
     listener: TcpListener,
     fb: Arc<FrameBuffer>,
     statistics_tx: mpsc::Sender<StatisticsEvent>,
+    network_buffer_size: usize,
 }
 
 impl Server {
@@ -54,6 +54,7 @@ impl Server {
         listen_address: &str,
         fb: Arc<FrameBuffer>,
         statistics_tx: mpsc::Sender<StatisticsEvent>,
+        network_buffer_size: usize,
     ) -> Result<Self, Error> {
         let listener = TcpListener::bind(listen_address)
             .await
@@ -64,6 +65,7 @@ impl Server {
             listener,
             fb,
             statistics_tx,
+            network_buffer_size,
         })
     }
 
@@ -80,8 +82,16 @@ impl Server {
 
             let fb_for_thread = Arc::clone(&self.fb);
             let statistics_tx_for_thread = self.statistics_tx.clone();
+            let network_buffer_size = self.network_buffer_size;
             tokio::spawn(async move {
-                handle_connection(socket, ip, fb_for_thread, statistics_tx_for_thread).await
+                handle_connection(
+                    socket,
+                    ip,
+                    fb_for_thread,
+                    statistics_tx_for_thread,
+                    network_buffer_size,
+                )
+                .await
             });
         }
     }
@@ -92,6 +102,7 @@ pub async fn handle_connection(
     ip: IpAddr,
     fb: Arc<FrameBuffer>,
     statistics_tx: mpsc::Sender<StatisticsEvent>,
+    network_buffer_size: usize,
 ) -> Result<(), Error> {
     debug!("Handling connection from {ip}");
 
@@ -100,8 +111,7 @@ pub async fn handle_connection(
         .await
         .context(WriteToStatisticsChannelSnafu)?;
 
-    // TODO: Try performance of Vec<> on heap instead of stack. Also bigger buffer
-    let mut buffer = [0u8; NETWORK_BUFFER_SIZE];
+    let mut buffer = vec![0u8; network_buffer_size];
     // Number bytes left over **on the first bytes of the buffer** from the previous loop iteration
     let mut leftover_bytes_in_buffer = 0;
 
@@ -118,7 +128,7 @@ pub async fn handle_connection(
         // Fill the buffer up with new data from the socket
         // If there are any bytes left over from the previous loop iteration leave them as is and but the new data behind
         let bytes_read = match stream
-            .read(&mut buffer[leftover_bytes_in_buffer..NETWORK_BUFFER_SIZE - parser_lookahead])
+            .read(&mut buffer[leftover_bytes_in_buffer..network_buffer_size - parser_lookahead])
             .await
         {
             Ok(bytes_read) => bytes_read,

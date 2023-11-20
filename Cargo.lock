@@ -183,6 +183,7 @@ dependencies = [
  "breakwater-core",
  "breakwater-parser",
  "clap 4.4.8",
+ "const_format",
  "env_logger",
  "log",
  "number_prefix",

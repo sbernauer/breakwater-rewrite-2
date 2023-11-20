@@ -7,7 +7,9 @@ use breakwater_core::{framebuffer::FrameBuffer, test::helpers::MockTcpStream, HE
 use rstest::{fixture, rstest};
 use tokio::sync::mpsc;
 
-use crate::{server::handle_connection, statistics::StatisticsEvent};
+use crate::{
+    cli_args::DEFAULT_NETWORK_BUFFER_SIZE, server::handle_connection, statistics::StatisticsEvent,
+};
 
 #[fixture]
 fn ip() -> IpAddr {
@@ -52,9 +54,15 @@ async fn test_correct_responses_to_general_commands(
     ),
 ) {
     let mut stream = MockTcpStream::from_input(input);
-    handle_connection(&mut stream, ip, fb, statistics_channel.0)
-        .await
-        .unwrap();
+    handle_connection(
+        &mut stream,
+        ip,
+        fb,
+        statistics_channel.0,
+        DEFAULT_NETWORK_BUFFER_SIZE,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(expected, stream.get_output());
 }
@@ -111,9 +119,15 @@ async fn test_setting_pixel(
     ),
 ) {
     let mut stream = MockTcpStream::from_input(input);
-    handle_connection(&mut stream, ip, fb, statistics_channel.0)
-        .await
-        .unwrap();
+    handle_connection(
+        &mut stream,
+        ip,
+        fb,
+        statistics_channel.0,
+        DEFAULT_NETWORK_BUFFER_SIZE,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(expected, stream.get_output());
 }
@@ -132,9 +146,15 @@ async fn test_safe(
     ),
 ) {
     let mut stream = MockTcpStream::from_input(input);
-    handle_connection(&mut stream, ip, fb.clone(), statistics_channel.0)
-        .await
-        .unwrap();
+    handle_connection(
+        &mut stream,
+        ip,
+        fb.clone(),
+        statistics_channel.0,
+        DEFAULT_NETWORK_BUFFER_SIZE,
+    )
+    .await
+    .unwrap();
 
     // Test if it panics
     assert_eq!(fb.get(0, 0).unwrap() & 0x00ff_ffff, 0xaaaaaa);
@@ -204,6 +224,7 @@ async fn test_drawing_rect(
         ip,
         Arc::clone(&fb),
         statistics_channel.0.clone(),
+        DEFAULT_NETWORK_BUFFER_SIZE,
     )
     .await
     .unwrap();
@@ -216,6 +237,7 @@ async fn test_drawing_rect(
         ip,
         Arc::clone(&fb),
         statistics_channel.0.clone(),
+        DEFAULT_NETWORK_BUFFER_SIZE,
     )
     .await
     .unwrap();
@@ -228,6 +250,7 @@ async fn test_drawing_rect(
         ip,
         Arc::clone(&fb),
         statistics_channel.0.clone(),
+        DEFAULT_NETWORK_BUFFER_SIZE,
     )
     .await
     .unwrap();
@@ -240,6 +263,7 @@ async fn test_drawing_rect(
         ip,
         Arc::clone(&fb),
         statistics_channel.0.clone(),
+        DEFAULT_NETWORK_BUFFER_SIZE,
     )
     .await
     .unwrap();

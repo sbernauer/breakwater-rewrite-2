@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{num::TryFromIntError, sync::Arc};
 
 use breakwater_core::framebuffer::FrameBuffer;
 use clap::Parser;
@@ -39,6 +39,12 @@ pub enum Error {
 
     #[snafu(display("Failed to start Prometheus exporter"))]
     StartPrometheusExporter { source: prometheus_exporter::Error },
+
+    #[snafu(display("Invalid network buffer size {network_buffer_size:?}"))]
+    InvalidNetworkBufferSize {
+        source: TryFromIntError,
+        network_buffer_size: i64,
+    },
 
     #[cfg(feature = "vnc")]
     #[snafu(display("Failed to spawn VNC server thread"))]
@@ -93,9 +99,19 @@ async fn main() -> Result<(), Error> {
         statistics_save_mode,
     );
 
-    let server = Server::new(&args.listen_address, Arc::clone(&fb), statistics_tx.clone())
-        .await
-        .context(StartPixelflutServerSnafu)?;
+    let server = Server::new(
+        &args.listen_address,
+        Arc::clone(&fb),
+        statistics_tx.clone(),
+        args.network_buffer_size
+            .try_into()
+            // This should never happen as clap checks the range for us
+            .context(InvalidNetworkBufferSizeSnafu {
+                network_buffer_size: args.network_buffer_size,
+            })?,
+    )
+    .await
+    .context(StartPixelflutServerSnafu)?;
     let mut prometheus_exporter = PrometheusExporter::new(
         &args.prometheus_listen_address,
         statistics_information_rx_for_prometheus_exporter,

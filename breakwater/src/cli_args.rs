@@ -1,4 +1,8 @@
 use clap::Parser;
+use const_format::formatcp;
+
+pub const DEFAULT_NETWORK_BUFFER_SIZE: usize = 1024 * 1024;
+pub const DEFAULT_NETWORK_BUFFER_SIZE_STR: &str = formatcp!("{}", DEFAULT_NETWORK_BUFFER_SIZE);
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -19,6 +23,11 @@ pub struct CliArgs {
     /// Frames per second the server should aim for.
     #[clap(short, long, default_value_t = 30)]
     pub fps: u32,
+
+    /// The size in bytes of the network buffer used for each open TCP connection.
+    /// Please use at least 256 KB (256_000 bytes).
+    #[clap(long, default_value = DEFAULT_NETWORK_BUFFER_SIZE_STR, value_parser = 256_000..100_000_000)]
+    pub network_buffer_size: i64,
 
     /// Text to display on the screen.
     /// The text will be followed by "on <listen_address>".
