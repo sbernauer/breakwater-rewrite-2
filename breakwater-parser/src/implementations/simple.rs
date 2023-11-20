@@ -54,7 +54,7 @@ impl Parser for SimpleParser {
                             last_byte_parsed = i + 6;
                             i += 7; // We can advance one byte more than normal as we use continue and therefore not get incremented at the end of the loop
 
-                            let rgba: u32 = simd_unhex(&buffer[i - 7..i + 1]);
+                            let rgba: u32 = simd_unhex(unsafe { buffer.as_ptr().add(i - 7) });
 
                             fb.set(x, y, rgba & 0x00ff_ffff);
                             continue;
@@ -66,7 +66,7 @@ impl Parser for SimpleParser {
                             last_byte_parsed = i + 8;
                             i += 9; // We can advance one byte more than normal as we use continue and therefore not get incremented at the end of the loop
 
-                            let rgba: u32 = simd_unhex(&buffer[i - 9..i - 1]);
+                            let rgba: u32 = simd_unhex(unsafe { buffer.as_ptr().add(i - 9) });
 
                             fb.set(x, y, rgba & 0x00ff_ffff);
                             continue;
@@ -76,7 +76,7 @@ impl Parser for SimpleParser {
                             last_byte_parsed = i + 8;
                             i += 9; // We can advance one byte more than normal as we use continue and therefore not get incremented at the end of the loop
 
-                            let rgba = simd_unhex(&buffer[i - 9..i - 1]);
+                            let rgba: u32 = simd_unhex(unsafe { buffer.as_ptr().add(i - 9) });
 
                             let alpha = (rgba >> 24) & 0xff;
 
@@ -103,7 +103,10 @@ impl Parser for SimpleParser {
                             last_byte_parsed = i + 2;
                             i += 3; // We can advance one byte more than normal as we use continue and therefore not get incremented at the end of the loop
 
-                            let base = simd_unhex(&buffer[i - 3..i + 5]) & 0xff;
+                            // FIXME: Read that two bytes directly instead of going through the whole SIMD vector setup.
+                            // Or - as an alternative - still do the SIMD part but only load two bytes.
+                            let base: u32 =
+                                simd_unhex(unsafe { buffer.as_ptr().add(i - 3) }) & 0xff;
 
                             let rgba: u32 = base << 16 | base << 8 | base;
 
@@ -200,20 +203,18 @@ const SIMD_9: Simd<u32, 8> = u32x8::from_array([9; 8]);
 /// Parse a slice of 8 characters into a single u32 number
 /// is undefined behavior for invalid characters
 #[inline(always)]
-fn simd_unhex(value: &[u8]) -> u32 {
-    #[cfg(debug_assertions)]
-    assert_eq!(value.len(), 8);
+fn simd_unhex(value: *const u8) -> u32 {
     // Feel free to find a better, but fast, way, to cast all integers as u32
     let input = unsafe {
         u32x8::from_array([
-            *value.get_unchecked(0) as u32,
-            *value.get_unchecked(1) as u32,
-            *value.get_unchecked(2) as u32,
-            *value.get_unchecked(3) as u32,
-            *value.get_unchecked(4) as u32,
-            *value.get_unchecked(5) as u32,
-            *value.get_unchecked(6) as u32,
-            *value.get_unchecked(7) as u32,
+            *value as u32,
+            *value.add(1) as u32,
+            *value.add(2) as u32,
+            *value.add(3) as u32,
+            *value.add(4) as u32,
+            *value.add(5) as u32,
+            *value.add(6) as u32,
+            *value.add(7) as u32,
         ])
     };
 
