@@ -115,7 +115,7 @@ pub async fn handle_connection(
     // Number bytes left over **on the first bytes of the buffer** from the previous loop iteration
     let mut leftover_bytes_in_buffer = 0;
 
-    let mut parser: SimpleParser = SimpleParser::default();
+    let mut parser: SimpleParser = SimpleParser::new(fb);
     // let mut parser: AssemblerParser = AssemblerParser::default();
     let parser_lookahead = SimpleParser::parser_lookahead();
 
@@ -172,7 +172,7 @@ pub async fn handle_connection(
             }
 
             let last_byte_parsed = parser
-                .parse(&buffer[..data_end + parser_lookahead], &fb, &mut stream)
+                .parse(&buffer[..data_end + parser_lookahead], &mut stream)
                 .await
                 .context(ParsePixelflutCommandsSnafu)?;
 

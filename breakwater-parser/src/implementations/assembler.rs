@@ -1,7 +1,6 @@
-use std::{arch::asm, sync::Arc};
+use std::arch::asm;
 
 use async_trait::async_trait;
-use breakwater_core::framebuffer::FrameBuffer;
 use tokio::io::AsyncWriteExt;
 
 use crate::{Parser, ParserError};
@@ -16,7 +15,6 @@ impl Parser for AssemblerParser {
     async fn parse(
         &mut self,
         buffer: &[u8],
-        _fb: &Arc<FrameBuffer>,
         _stream: impl AsyncWriteExt + Send + Unpin,
     ) -> Result<usize, ParserError> {
         let mut last_byte_parsed = 0;

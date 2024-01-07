@@ -1,10 +1,7 @@
 // Needed for simple implementation
 #![feature(portable_simd)]
 
-use std::sync::Arc;
-
 use async_trait::async_trait;
-use breakwater_core::framebuffer::FrameBuffer;
 use snafu::Snafu;
 use tokio::io::AsyncWriteExt;
 
@@ -21,7 +18,6 @@ pub trait Parser {
     async fn parse(
         &mut self,
         buffer: &[u8],
-        fb: &Arc<FrameBuffer>,
         stream: impl AsyncWriteExt + Send + Unpin,
     ) -> Result<usize, ParserError>;
 

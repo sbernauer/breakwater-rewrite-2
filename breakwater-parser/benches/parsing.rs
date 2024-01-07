@@ -83,17 +83,17 @@ fn invoke_benchmark(
 }
 
 async fn invoke_simple_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
-    let mut parser = SimpleParser::default();
+    let mut parser = SimpleParser::new(fb.clone());
     parser
-        .parse(input, fb, DevNullTcpStream::default())
+        .parse(input, DevNullTcpStream::default())
         .await
         .expect("Failed to parse commands");
 }
 
-async fn _invoke_assembler_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
+async fn _invoke_assembler_implementation(input: &[u8], _fb: &Arc<FrameBuffer>) {
     let mut parser = AssemblerParser::default();
     parser
-        .parse(input, fb, DevNullTcpStream::default())
+        .parse(input, DevNullTcpStream::default())
         .await
         .expect("Failed to parse commands");
 }
