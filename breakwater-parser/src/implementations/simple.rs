@@ -3,7 +3,6 @@ use std::{
     sync::Arc,
 };
 
-use async_trait::async_trait;
 use breakwater_core::{framebuffer::FrameBuffer, HELP_TEXT};
 use snafu::ResultExt;
 use tokio::io::AsyncWriteExt;
@@ -202,7 +201,6 @@ const OFFSET_PATTERN: u64 = string_to_number(b"OFFSET \0\0");
 const SIZE_PATTERN: u64 = string_to_number(b"SIZE\0\0\0\0");
 const HELP_PATTERN: u64 = string_to_number(b"HELP\0\0\0\0");
 
-#[async_trait]
 impl Parser for SimpleParser {
     async fn parse(
         &mut self,

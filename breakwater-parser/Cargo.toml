@@ -14,9 +14,9 @@ harness = false
 [dependencies]
 breakwater-core.workspace = true
 
-async-trait.workspace = true
 snafu.workspace = true
 tokio.workspace = true
+trait-variant.workspace = true
 
 [dev-dependencies]
 criterion.workspace = true

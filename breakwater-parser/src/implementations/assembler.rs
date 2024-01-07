@@ -1,6 +1,5 @@
 use std::arch::asm;
 
-use async_trait::async_trait;
 use tokio::io::AsyncWriteExt;
 
 use crate::{Parser, ParserError};
@@ -10,7 +9,6 @@ const PARSER_LOOKAHEAD: usize = "PX 1234 1234 rrggbbaa\n".len(); // Longest poss
 #[derive(Default)]
 pub struct AssemblerParser {}
 
-#[async_trait]
 impl Parser for AssemblerParser {
     async fn parse(
         &mut self,

@@ -1,7 +1,6 @@
 // Needed for simple implementation
 #![feature(portable_simd)]
 
-use async_trait::async_trait;
 use snafu::Snafu;
 use tokio::io::AsyncWriteExt;
 
@@ -13,7 +12,8 @@ pub enum ParserError {
     WriteToTcpSocket { source: std::io::Error },
 }
 
-#[async_trait]
+// According to https://blog.rust-lang.org/2023/12/21/async-fn-rpit-in-traits.html
+#[trait_variant::make(SendParser: Send)]
 pub trait Parser {
     async fn parse(
         &mut self,
