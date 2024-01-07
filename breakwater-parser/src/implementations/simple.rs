@@ -28,7 +28,7 @@ impl SimpleParser {
     }
 
     #[inline]
-    async fn handle_pixel(&self, buffer: &[u8], mut idx: usize, stream: &mut (impl AsyncWriteExt + Send + Unpin)) -> Result<usize, ParserError> {
+    async fn handle_pixel(&self, buffer: &[u8], mut idx: usize, stream: &mut (impl AsyncWriteExt + Send + Unpin)) -> Result<(usize, usize), ParserError> {
         let previous = idx;
         idx += 3;
 
@@ -49,20 +49,23 @@ impl SimpleParser {
                 if unsafe { *buffer.get_unchecked(idx + 6) } == b'\n' {
                     idx += 7;
                     self.handle_rgb(idx, buffer, x, y);
+                    Ok((idx, idx))
                 }
 
                 // ... or must be followed by 8 bytes RGBA and newline
                 else if unsafe { *buffer.get_unchecked(idx + 8) } == b'\n' {
                     idx += 9;
                     self.handle_rgba(idx, buffer, x, y);
+                    Ok((idx, idx))
                 }
 
                 // ... for the efficient/lazy clients
                 else if unsafe { *buffer.get_unchecked(idx + 2) } == b'\n' {
                     idx += 3;
                     self.handle_gray(idx, buffer, x, y);
+                    Ok((idx, idx))
                 } else {
-                    idx = previous
+                    Ok((idx, previous))
                 }
             }
 
@@ -70,13 +73,13 @@ impl SimpleParser {
             else if unsafe { *buffer.get_unchecked(idx) } == b'\n' {
                 idx += 1;
                 self.handle_get_pixel(stream, x, y).await?;
+                Ok((idx, idx))
             } else {
-                idx = previous
+                Ok((idx, previous))
             }
         } else {
-            idx = previous
+            Ok((idx, previous))
         }
-        Ok(idx)
     }
 
     #[inline]
@@ -188,28 +191,32 @@ impl Parser for SimpleParser {
         mut stream: impl AsyncWriteExt + Send + Unpin,
     ) -> Result<usize, ParserError> {
         let mut i = 0; // We can't use a for loop here because Rust don't lets use skip characters by incrementing i
+        let mut last_byte_parsed = 0;
         let loop_end = buffer.len().saturating_sub(PARSER_LOOKAHEAD); // Let's extract the .len() call and the subtraction into it's own variable so we only compute it once
 
         while i < loop_end {
             let current_command =
                 unsafe { (buffer.as_ptr().add(i) as *const u64).read_unaligned() };
             if current_command & 0x00ff_ffff == string_to_number(b"PX \0\0\0\0\0") {
-                i = self.handle_pixel(buffer, i, &mut stream).await?;
+                (i, last_byte_parsed) = self.handle_pixel(buffer, i, &mut stream).await?;
             } else if current_command & 0x00ff_ffff_ffff_ffff == string_to_number(b"OFFSET \0\0") {
                 i += 7;
                 self.handle_offset(&mut i, buffer);
+                last_byte_parsed = i;
             } else if current_command & 0xffff_ffff == string_to_number(b"SIZE\0\0\0\0") {
                 i += 4;
+                last_byte_parsed = i;
                 self.handle_size(&mut stream).await?;
             } else if current_command & 0xffff_ffff == string_to_number(b"HELP\0\0\0\0") {
                 i += 4;
+                last_byte_parsed = i;
                 self.handle_help(&mut stream).await?;
             } else {
                 i += 1;
             }
         }
 
-        Ok(i - 1)
+        Ok(last_byte_parsed.wrapping_sub(1))
     }
 
     fn parser_lookahead() -> usize {
