@@ -26,7 +26,7 @@ impl SimpleParser {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     async fn handle_pixel(
         &self,
         buffer: &[u8],
@@ -83,7 +83,7 @@ impl SimpleParser {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_offset(&mut self, idx: &mut usize, buffer: &[u8]) {
         let (x, y, present) = parse_pixel_coordinates(buffer.as_ptr(), idx);
 
@@ -94,7 +94,7 @@ impl SimpleParser {
         }
     }
 
-    #[inline]
+    #[inline(always)]
     async fn handle_size(
         &self,
         stream: &mut (impl AsyncWriteExt + Send + Unpin),
@@ -108,7 +108,7 @@ impl SimpleParser {
         Ok(())
     }
 
-    #[inline]
+    #[inline(always)]
     async fn handle_help(
         &self,
         stream: &mut (impl AsyncWriteExt + Send + Unpin),
@@ -120,7 +120,7 @@ impl SimpleParser {
         Ok(())
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_rgb(&self, idx: usize, buffer: &[u8], x: usize, y: usize) {
         let rgba: u32 = simd_unhex(unsafe { buffer.as_ptr().add(idx - 7) });
 
@@ -128,7 +128,7 @@ impl SimpleParser {
     }
 
     #[cfg(not(feature = "alpha"))]
-    #[inline]
+    #[inline(always)]
     fn handle_rgba(&self, idx: usize, buffer: &[u8], x: usize, y: usize) {
         let rgba: u32 = simd_unhex(unsafe { buffer.as_ptr().add(idx - 9) });
 
@@ -136,7 +136,7 @@ impl SimpleParser {
     }
 
     #[cfg(feature = "alpha")]
-    #[inline]
+    #[inline(always)]
     fn handle_rgba(&self, idx: usize, buffer: &[u8], x: usize, y: usize) {
         let rgba: u32 = simd_unhex(unsafe { buffer.as_ptr().add(idx - 9) });
 
@@ -159,7 +159,7 @@ impl SimpleParser {
         self.fb.set(x, y, r << 16 | g << 8 | b);
     }
 
-    #[inline]
+    #[inline(always)]
     fn handle_gray(&self, idx: usize, buffer: &[u8], x: usize, y: usize) {
         // FIXME: Read that two bytes directly instead of going through the whole SIMD vector setup.
         // Or - as an alternative - still do the SIMD part but only load two bytes.
@@ -170,7 +170,7 @@ impl SimpleParser {
         self.fb.set(x, y, rgba);
     }
 
-    #[inline]
+    #[inline(always)]
     async fn handle_get_pixel(
         &self,
         stream: &mut (impl AsyncWriteExt + Send + Unpin),
@@ -241,7 +241,7 @@ impl Parser for SimpleParser {
     }
 }
 
-#[inline]
+#[inline(always)]
 const fn string_to_number(input: &[u8]) -> u64 {
     (input[7] as u64) << 56
         | (input[6] as u64) << 48
