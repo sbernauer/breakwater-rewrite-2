@@ -18,11 +18,13 @@ fn compare_implementations(c: &mut Criterion) {
         "benches/non-transparent.png",
         true,
         false,
+        false,
     );
     invoke_benchmark(
         c,
         "parse_draw_commands_ordered",
         "benches/non-transparent.png",
+        false,
         false,
         false,
     );
@@ -32,13 +34,15 @@ fn compare_implementations(c: &mut Criterion) {
         "benches/non-transparent.png",
         true,
         true,
+        false,
     );
     invoke_benchmark(
         c,
         "parse_mixed_draw_commands",
         "benches/mixed.png",
-        true,
         false,
+        false,
+        true,
     );
 }
 
@@ -48,6 +52,7 @@ fn invoke_benchmark(
     image: &str,
     shuffle: bool,
     use_offset: bool,
+    use_gray: bool,
 ) {
     let commands = image_handler::load(
         vec![image],
@@ -56,6 +61,7 @@ fn invoke_benchmark(
             .height(FRAMEBUFFER_HEIGHT as u32)
             .shuffle(shuffle)
             .offset_usage(use_offset)
+            .gray_usage(use_gray)
             .build(),
     )
     .pop()
@@ -77,17 +83,17 @@ fn invoke_benchmark(
 }
 
 async fn invoke_simple_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
-    let mut parser = SimpleParser::default();
+    let mut parser = SimpleParser::new(fb.clone());
     parser
-        .parse(input, fb, DevNullTcpStream::default())
+        .parse(input, DevNullTcpStream::default())
         .await
         .expect("Failed to parse commands");
 }
 
-async fn _invoke_assembler_implementation(input: &[u8], fb: &Arc<FrameBuffer>) {
+async fn _invoke_assembler_implementation(input: &[u8], _fb: &Arc<FrameBuffer>) {
     let mut parser = AssemblerParser::default();
     parser
-        .parse(input, fb, DevNullTcpStream::default())
+        .parse(input, DevNullTcpStream::default())
         .await
         .expect("Failed to parse commands");
 }
