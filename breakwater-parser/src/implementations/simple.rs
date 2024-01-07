@@ -1,5 +1,5 @@
 use std::{
-    simd::{u32x8, Simd, SimdUint},
+    simd::{u32x8, Simd, num::SimdUint},
     sync::Arc,
 };
 
