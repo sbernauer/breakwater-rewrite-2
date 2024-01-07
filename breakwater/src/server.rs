@@ -1,9 +1,4 @@
-use std::{
-    cmp::min,
-    net::{IpAddr, Ipv4Addr},
-    sync::Arc,
-    time::Duration,
-};
+use std::{cmp::min, net::IpAddr, sync::Arc, time::Duration};
 
 use breakwater_core::framebuffer::FrameBuffer;
 use breakwater_parser::{implementations::SimpleParser, Parser, ParserError};
@@ -78,7 +73,7 @@ impl Server {
                 .context(AcceptNewClientConnectionSnafu)?;
             // If you connect via IPv4 you often show up as embedded inside an IPv6 address
             // Extracting the embedded information here, so we get the real (TM) address
-            let ip = ip_to_canonical(socket_addr.ip());
+            let ip = socket_addr.ip().to_canonical();
 
             let fb_for_thread = Arc::clone(&self.fb);
             let statistics_tx_for_thread = self.statistics_tx.clone();
@@ -200,18 +195,4 @@ pub async fn handle_connection(
         .context(WriteToStatisticsChannelSnafu)?;
 
     Ok(())
-}
-
-/// TODO: Switch to official ip.to_canonical() method when it is stable. **If** it gets stable sometime ;)
-/// See <https://doc.rust-lang.org/std/net/enum.IpAddr.html#method.to_canonical>
-const fn ip_to_canonical(ip: IpAddr) -> IpAddr {
-    match ip {
-        IpAddr::V4(_) => ip,
-        IpAddr::V6(v6) => match v6.octets() {
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, a, b, c, d] => {
-                IpAddr::V4(Ipv4Addr::new(a, b, c, d))
-            }
-            _ => ip,
-        },
-    }
 }

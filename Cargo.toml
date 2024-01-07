@@ -16,14 +16,14 @@ criterion = {version = "0.5", features = ["async_tokio"]}
 env_logger = "0.10"
 log = "0.4"
 number_prefix = "0.4"
-pixelbomber = "0.4"
+pixelbomber = "0.5"
 prometheus_exporter = "0.8"
 rstest = "0.18"
 rusttype = "0.9"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 simple_moving_average = "1.0"
-snafu = "0.7"
+snafu = "0.8"
 thread-priority = "0.15"
 tokio = { version = "1.34", features = ["fs", "rt-multi-thread", "net", "io-util", "macros", "process", "signal", "sync", "time"] }
 trait-variant = "0.1"
