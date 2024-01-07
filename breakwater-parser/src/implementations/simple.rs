@@ -184,6 +184,7 @@ impl Parser for SimpleParser {
     }
 }
 
+#[inline]
 const fn string_to_number(input: &[u8]) -> u64 {
     (input[7] as u64) << 56
         | (input[6] as u64) << 48
